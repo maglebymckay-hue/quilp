@@ -27,10 +27,10 @@ import CameraGrid from "../components/meeting/CameraGrid";
 import BottomToolbar from "../components/meeting/BottomToolbar";
 import ChatPanel from "../components/meeting/ChatPanel";
 import ReactionBar from "../components/meeting/ReactionBar";
+import MeetingToasts from "../components/meeting/MeetingToasts";
 
 function Meeting() {
   const { code } = useParams();
-
   const navigate = useNavigate();
 
   const searchParams =
@@ -69,9 +69,23 @@ function Meeting() {
     useState(false);
 
   const [
+    unreadChatCount,
+    setUnreadChatCount,
+  ] = useState(0);
+
+  const [
     reactionsOpen,
     setReactionsOpen,
   ] = useState(false);
+
+  const [
+    peopleOpen,
+    setPeopleOpen,
+  ] = useState(true);
+
+  /* --------------------------------
+     Initialize meeting
+  -------------------------------- */
 
   useEffect(() => {
     initializeMeeting();
@@ -105,6 +119,11 @@ function Meeting() {
         meetingError ||
         !meetingData
       ) {
+        console.error(
+          "Meeting lookup error:",
+          meetingError
+        );
+
         throw new Error(
           "Could not find this meeting."
         );
@@ -127,6 +146,7 @@ function Meeting() {
 
       setToken(response.token);
       setServerUrl(response.url);
+
     } catch (error) {
       console.error(
         "Meeting initialization error:",
@@ -136,20 +156,122 @@ function Meeting() {
       alert(error.message);
 
       navigate("/home");
+
     } finally {
       setLoading(false);
     }
   }
 
+  /* --------------------------------
+     Unread chat listener
+  -------------------------------- */
+
+  useEffect(() => {
+    if (
+      !meeting?.id ||
+      !user?.id
+    ) {
+      return;
+    }
+
+    const channel = supabase
+      .channel(
+        `unread-chat-${meeting.id}`
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter:
+            `meeting_id=eq.${meeting.id}`,
+        },
+        (payload) => {
+          const message =
+            payload.new;
+
+          // Don't count our own message.
+          if (
+            message.sender_id ===
+            user.id
+          ) {
+            return;
+          }
+
+          // Only count messages while
+          // the chat panel is closed.
+          if (!chatOpen) {
+            setUnreadChatCount(
+              (current) =>
+                current + 1
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(
+        channel
+      );
+    };
+
+  }, [
+    meeting?.id,
+    user?.id,
+    chatOpen,
+  ]);
+
+  /* --------------------------------
+     Controls
+  -------------------------------- */
+
   function handleDisconnected() {
     navigate("/home");
   }
+
+  function toggleChat() {
+    setChatOpen(
+      (current) => {
+        const next = !current;
+
+        if (next) {
+          setUnreadChatCount(0);
+        }
+
+        return next;
+      }
+    );
+
+    setReactionsOpen(false);
+  }
+
+  function toggleReactions() {
+    setReactionsOpen(
+      (current) => !current
+    );
+
+    setChatOpen(false);
+  }
+
+  function togglePeople() {
+    setPeopleOpen(
+      (current) => !current
+    );
+  }
+
+  /* --------------------------------
+     Loading
+  -------------------------------- */
 
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950">
 
         <div className="text-center">
+
+          <div className="mx-auto mb-5 h-12 w-12 animate-pulse rounded-2xl bg-violet-600" />
 
           <h1 className="text-3xl font-bold text-violet-500">
             Quilp
@@ -182,6 +304,10 @@ function Meeting() {
     );
   }
 
+  /* --------------------------------
+     Meeting
+  -------------------------------- */
+
   return (
     <LiveKitRoom
       token={token}
@@ -196,13 +322,21 @@ function Meeting() {
     >
       <RoomAudioRenderer />
 
+      <MeetingToasts />
+
       <div className="flex h-screen overflow-hidden">
 
-        <ParticipantSidebar
-          roomCode={code}
-          hostId={meeting.host}
-          currentUser={user}
-        />
+        {/* People Sidebar */}
+
+        {peopleOpen && (
+          <ParticipantSidebar
+            roomCode={code}
+            hostId={meeting.host}
+            currentUser={user}
+          />
+        )}
+
+        {/* Main Meeting */}
 
         <div className="flex min-w-0 flex-1 flex-col">
 
@@ -212,46 +346,51 @@ function Meeting() {
 
           <div className="flex min-h-0 flex-1">
 
+            {/* Cameras / Screen Share */}
+
             <div className="min-w-0 flex-1">
               <CameraGrid />
             </div>
+
+            {/* Chat */}
 
             {chatOpen && (
               <ChatPanel
                 meetingId={meeting.id}
                 currentUser={user}
-                onClose={() =>
-                  setChatOpen(false)
-                }
+                onClose={() => {
+                  setChatOpen(false);
+                }}
               />
             )}
 
           </div>
+
+          {/* Toolbar */}
 
           <BottomToolbar
             chatOpen={chatOpen}
             reactionsOpen={
               reactionsOpen
             }
-            onToggleChat={() => {
-              setChatOpen(
-                (current) =>
-                  !current
-              );
-
-              setReactionsOpen(
-                false
-              );
-            }}
-            onToggleReactions={() => {
-              setReactionsOpen(
-                (current) =>
-                  !current
-              );
-
-              setChatOpen(false);
-            }}
+            peopleOpen={
+              peopleOpen
+            }
+            unreadChatCount={
+              unreadChatCount
+            }
+            onToggleChat={
+              toggleChat
+            }
+            onToggleReactions={
+              toggleReactions
+            }
+            onTogglePeople={
+              togglePeople
+            }
           />
+
+          {/* Reactions */}
 
           <ReactionBar
             open={reactionsOpen}

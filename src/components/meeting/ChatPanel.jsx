@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { Send, X } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  Send,
+  X,
+} from "lucide-react";
 
 import supabase from "../../lib/supabase";
 
@@ -15,22 +23,37 @@ function ChatPanel({
 }) {
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     if (!meetingId) return;
 
-    let channel;
+    let channel = null;
+    let cancelled = false;
 
     async function initializeChat() {
       try {
-        const existingMessages = await loadMessages(meetingId);
+        const existingMessages =
+          await loadMessages(meetingId);
+
+        if (cancelled) return;
+
         setMessages(existingMessages);
       } catch (error) {
-        console.error("Load messages error:", error);
+        console.error(
+          "Load messages error:",
+          error
+        );
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
 
       channel = supabase
-        .channel(`chat-${meetingId}`)
+        .channel(`chat-panel-${meetingId}`)
         .on(
           "postgres_changes",
           {
@@ -41,15 +64,20 @@ function ChatPanel({
           },
           (payload) => {
             setMessages((currentMessages) => {
-              const alreadyExists = currentMessages.some(
-                (message) => message.id === payload.new.id
-              );
+              const exists =
+                currentMessages.some(
+                  (message) =>
+                    message.id === payload.new.id
+                );
 
-              if (alreadyExists) {
+              if (exists) {
                 return currentMessages;
               }
 
-              return [...currentMessages, payload.new];
+              return [
+                ...currentMessages,
+                payload.new,
+              ];
             });
           }
         )
@@ -59,16 +87,28 @@ function ChatPanel({
     initializeChat();
 
     return () => {
+      cancelled = true;
+
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
   }, [meetingId]);
 
-  async function handleSendMessage() {
-    const cleanedMessage = messageText.trim();
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
 
-    if (!cleanedMessage || !currentUser?.id) {
+  async function handleSendMessage() {
+    const cleanedMessage =
+      messageText.trim();
+
+    if (
+      !cleanedMessage ||
+      !currentUser?.id
+    ) {
       return;
     }
 
@@ -81,7 +121,11 @@ function ChatPanel({
 
       setMessageText("");
     } catch (error) {
-      console.error("Send message error:", error);
+      console.error(
+        "Send message error:",
+        error
+      );
+
       alert(error.message);
     }
   }
@@ -114,79 +158,116 @@ function ChatPanel({
 
       {/* Messages */}
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+      <div className="flex-1 overflow-y-auto p-5">
 
-        {messages.length === 0 && (
+        {loading && (
           <div className="mt-10 text-center text-sm text-zinc-500">
-            No messages yet.
+            Loading messages...
           </div>
         )}
 
-        {messages.map((message) => {
-          const isMe =
-            message.sender_id === currentUser?.id;
+        {!loading &&
+          messages.length === 0 && (
+            <div className="mt-10 text-center">
 
-          return (
-            <div
-              key={message.id}
-              className={`flex ${
-                isMe
-                  ? "justify-end"
-                  : "justify-start"
-              }`}
-            >
+              <p className="text-sm font-medium text-zinc-400">
+                No messages yet
+              </p>
+
+              <p className="mt-1 text-xs text-zinc-600">
+                Start the conversation.
+              </p>
+
+            </div>
+          )}
+
+        <div className="space-y-4">
+
+          {messages.map((message) => {
+            const isMe =
+              message.sender_id ===
+              currentUser?.id;
+
+            return (
               <div
-                className={`
-                  max-w-[80%]
-                  rounded-2xl
-                  px-4
-                  py-3
-                  ${
-                    isMe
-                      ? "bg-violet-600 text-white"
-                      : "bg-zinc-900 text-zinc-100"
-                  }
-                `}
+                key={message.id}
+                className={`flex ${
+                  isMe
+                    ? "justify-end"
+                    : "justify-start"
+                }`}
               >
-                <p className="text-sm">
-                  {message.message}
-                </p>
 
-                <p
+                <div
                   className={`
-                    mt-1
-                    text-[10px]
+                    max-w-[82%]
+                    rounded-2xl
+                    px-4
+                    py-3
                     ${
                       isMe
-                        ? "text-violet-200"
-                        : "text-zinc-500"
+                        ? "rounded-br-md bg-violet-600 text-white"
+                        : "rounded-bl-md bg-zinc-900 text-zinc-100"
                     }
                   `}
                 >
-                  {new Date(
-                    message.created_at
-                  ).toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </p>
+
+                  {isMe && (
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-violet-200">
+                      You
+                    </p>
+                  )}
+
+                  <p className="break-words text-sm">
+                    {message.message}
+                  </p>
+
+                  <p
+                    className={`
+                      mt-1
+                      text-[10px]
+                      ${
+                        isMe
+                          ? "text-violet-200"
+                          : "text-zinc-500"
+                      }
+                    `}
+                  >
+                    {new Date(
+                      message.created_at
+                    ).toLocaleTimeString(
+                      [],
+                      {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      }
+                    )}
+                  </p>
+
+                </div>
+
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+
+          <div ref={messagesEndRef} />
+
+        </div>
 
       </div>
 
-      {/* Input */}
+      {/* Message Input */}
 
       <div className="border-t border-zinc-800 p-4">
 
-        <div className="flex items-end gap-3 rounded-2xl bg-zinc-900 p-2">
+        <div className="flex items-end gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-2 focus-within:border-violet-500">
 
           <textarea
             value={messageText}
             onChange={(event) =>
-              setMessageText(event.target.value)
+              setMessageText(
+                event.target.value
+              )
             }
             onKeyDown={(event) => {
               if (
@@ -204,13 +285,19 @@ function ChatPanel({
 
           <button
             onClick={handleSendMessage}
-            disabled={!messageText.trim()}
+            disabled={
+              !messageText.trim()
+            }
             className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Send size={18} />
           </button>
 
         </div>
+
+        <p className="mt-2 text-center text-[10px] text-zinc-600">
+          Enter to send • Shift + Enter for a new line
+        </p>
 
       </div>
 

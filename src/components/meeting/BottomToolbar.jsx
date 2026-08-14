@@ -12,21 +12,19 @@ import {
   PhoneOff,
 } from "lucide-react";
 
-import {
-  useNavigate,
-} from "react-router-dom";
-
-import {
-  useLocalParticipant,
-} from "@livekit/components-react";
+import { useNavigate } from "react-router-dom";
+import { useLocalParticipant } from "@livekit/components-react";
 
 import IconButton from "./ui/IconButton";
 
 function BottomToolbar({
   chatOpen,
   reactionsOpen,
+  peopleOpen,
+  unreadChatCount = 0,
   onToggleChat,
   onToggleReactions,
+  onTogglePeople,
 }) {
   const navigate = useNavigate();
 
@@ -43,10 +41,7 @@ function BottomToolbar({
         !isMicrophoneEnabled
       );
     } catch (error) {
-      console.error(
-        "Microphone error:",
-        error
-      );
+      console.error("Microphone error:", error);
     }
   }
 
@@ -56,10 +51,7 @@ function BottomToolbar({
         !isCameraEnabled
       );
     } catch (error) {
-      console.error(
-        "Camera error:",
-        error
-      );
+      console.error("Camera error:", error);
     }
   }
 
@@ -69,37 +61,25 @@ function BottomToolbar({
         !isScreenShareEnabled
       );
     } catch (error) {
-      console.error(
-        "Screen share error:",
-        error
-      );
+      console.error("Screen share error:", error);
     }
   }
 
   async function leaveMeeting() {
     try {
       if (isScreenShareEnabled) {
-        await localParticipant.setScreenShareEnabled(
-          false
-        );
+        await localParticipant.setScreenShareEnabled(false);
       }
 
       if (isCameraEnabled) {
-        await localParticipant.setCameraEnabled(
-          false
-        );
+        await localParticipant.setCameraEnabled(false);
       }
 
       if (isMicrophoneEnabled) {
-        await localParticipant.setMicrophoneEnabled(
-          false
-        );
+        await localParticipant.setMicrophoneEnabled(false);
       }
     } catch (error) {
-      console.error(
-        "Leave cleanup error:",
-        error
-      );
+      console.error("Leave cleanup error:", error);
     }
 
     navigate("/home");
@@ -107,23 +87,14 @@ function BottomToolbar({
 
   return (
     <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2">
-
       <div className="flex items-center gap-4 rounded-full border border-zinc-800 bg-zinc-900/90 px-6 py-4 shadow-2xl backdrop-blur-xl">
 
         <div className="flex flex-col items-center gap-1">
-          <IconButton
-            onClick={toggleMicrophone}
-          >
+          <IconButton onClick={toggleMicrophone}>
             {isMicrophoneEnabled ? (
-              <Mic
-                size={20}
-                className="text-white"
-              />
+              <Mic size={20} className="text-white" />
             ) : (
-              <MicOff
-                size={20}
-                className="text-red-400"
-              />
+              <MicOff size={20} className="text-red-400" />
             )}
           </IconButton>
 
@@ -133,19 +104,11 @@ function BottomToolbar({
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <IconButton
-            onClick={toggleCamera}
-          >
+          <IconButton onClick={toggleCamera}>
             {isCameraEnabled ? (
-              <Video
-                size={20}
-                className="text-white"
-              />
+              <Video size={20} className="text-white" />
             ) : (
-              <VideoOff
-                size={20}
-                className="text-red-400"
-              />
+              <VideoOff size={20} className="text-red-400" />
             )}
           </IconButton>
 
@@ -155,9 +118,7 @@ function BottomToolbar({
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <IconButton
-            onClick={toggleScreenShare}
-          >
+          <IconButton onClick={toggleScreenShare}>
             {isScreenShareEnabled ? (
               <MonitorOff
                 size={20}
@@ -178,10 +139,9 @@ function BottomToolbar({
           </span>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
-          <IconButton
-            onClick={onToggleChat}
-          >
+        <div className="relative flex flex-col items-center gap-1">
+
+          <IconButton onClick={onToggleChat}>
             <MessageCircle
               size={20}
               className={
@@ -192,6 +152,14 @@ function BottomToolbar({
             />
           </IconButton>
 
+          {unreadChatCount > 0 && !chatOpen && (
+            <div className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-600 px-1 text-[10px] font-bold text-white">
+              {unreadChatCount > 99
+                ? "99+"
+                : unreadChatCount}
+            </div>
+          )}
+
           <span
             className={`text-[11px] ${
               chatOpen
@@ -201,12 +169,11 @@ function BottomToolbar({
           >
             Chat
           </span>
+
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <IconButton
-            onClick={onToggleReactions}
-          >
+          <IconButton onClick={onToggleReactions}>
             <Smile
               size={20}
               className={
@@ -229,14 +196,24 @@ function BottomToolbar({
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <IconButton>
+          <IconButton onClick={onTogglePeople}>
             <Users
               size={20}
-              className="text-white"
+              className={
+                peopleOpen
+                  ? "text-violet-400"
+                  : "text-white"
+              }
             />
           </IconButton>
 
-          <span className="text-[11px] text-zinc-400">
+          <span
+            className={`text-[11px] ${
+              peopleOpen
+                ? "text-violet-400"
+                : "text-zinc-400"
+            }`}
+          >
             People
           </span>
         </div>
@@ -265,7 +242,6 @@ function BottomToolbar({
         </button>
 
       </div>
-
     </div>
   );
 }

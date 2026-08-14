@@ -10,105 +10,116 @@ function MeetingHeader({ code }) {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setSeconds((prev) => prev + 1);
+      setSeconds((current) => current + 1);
     }, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
-  async function copyMeetingCode() {
-    await navigator.clipboard.writeText(code);
+  async function copyInviteLink() {
+    try {
+      const inviteLink =
+        `${window.location.origin}/waiting/${code}`;
 
-    setCopied(true);
+      await navigator.clipboard.writeText(inviteLink);
 
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Copy invite error:", error);
+    }
   }
 
-  const hours = String(Math.floor(seconds / 3600)).padStart(2, "0");
-  const minutes = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
-  const secs = String(seconds % 60).padStart(2, "0");
+  const hours = String(
+    Math.floor(seconds / 3600)
+  ).padStart(2, "0");
+
+  const minutes = String(
+    Math.floor((seconds % 3600) / 60)
+  ).padStart(2, "0");
+
+  const secs = String(
+    seconds % 60
+  ).padStart(2, "0");
 
   return (
-    <header className="h-20 border-b border-zinc-800 bg-zinc-950 px-8 flex items-center justify-between">
-
-      {/* Logo */}
+    <header className="flex h-20 items-center justify-between border-b border-zinc-800 bg-zinc-950 px-8">
 
       <div className="flex items-center gap-3">
 
-        <div className="h-12 w-12 rounded-2xl bg-violet-600 flex items-center justify-center">
-
-          <Video className="text-white" size={22} />
-
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-600">
+          <Video
+            size={21}
+            className="text-white"
+          />
         </div>
 
         <div>
-
           <h1 className="text-2xl font-bold text-white">
             Quilp
           </h1>
 
           <p className="text-xs text-zinc-500">
-            Connect Instantly
+            Connect instantly.
           </p>
-
         </div>
 
       </div>
 
-      {/* Meeting Info */}
-
       <div className="flex items-center gap-6">
 
         <div className="text-right">
-
           <p className="text-xs text-zinc-500">
             Duration
           </p>
 
-          <p className="text-white font-semibold">
+          <p className="font-semibold text-white">
             {hours}:{minutes}:{secs}
           </p>
-
         </div>
 
         <div className="text-right">
-
           <p className="text-xs text-zinc-500">
             Participants
           </p>
 
-          <p className="text-white font-semibold flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-2 text-white">
             <Users size={16} />
-            {participants.length}
-          </p>
 
+            <span className="font-semibold">
+              {participants.length}
+            </span>
+          </div>
         </div>
 
         <button
-          onClick={copyMeetingCode}
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-3 hover:border-violet-500 transition flex items-center gap-3"
+          onClick={copyInviteLink}
+          className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-3 transition hover:border-violet-500"
         >
-
           <div className="text-left">
-
             <p className="text-xs text-zinc-500">
               Meeting Code
             </p>
 
-            <p className="text-white font-bold">
+            <p className="font-bold text-white">
               {code}
             </p>
-
           </div>
 
           {copied ? (
-            <Check className="text-green-400" size={18} />
+            <Check
+              size={18}
+              className="text-green-400"
+            />
           ) : (
-            <Copy className="text-zinc-400" size={18} />
+            <Copy
+              size={18}
+              className="text-zinc-400"
+            />
           )}
-
         </button>
 
       </div>
