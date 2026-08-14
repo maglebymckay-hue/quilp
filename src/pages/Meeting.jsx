@@ -16,10 +16,7 @@ import {
 import "@livekit/components-styles";
 
 import supabase from "../lib/supabase";
-
-import {
-  getLiveKitToken,
-} from "../services/livekitService";
+import { getLiveKitToken } from "../services/livekitService";
 
 import MeetingHeader from "../components/meeting/MeetingHeader";
 import ParticipantSidebar from "../components/meeting/ParticipantSidebar";
@@ -28,64 +25,43 @@ import BottomToolbar from "../components/meeting/BottomToolbar";
 import ChatPanel from "../components/meeting/ChatPanel";
 import ReactionBar from "../components/meeting/ReactionBar";
 import MeetingToasts from "../components/meeting/MeetingToasts";
+import SettingsPanel from "../components/meeting/SettingsPanel";
 
 function Meeting() {
   const { code } = useParams();
   const navigate = useNavigate();
 
   const searchParams =
-    new URLSearchParams(
-      window.location.search
-    );
+    new URLSearchParams(window.location.search);
 
   const displayName =
-    searchParams.get("name") ||
-    "Guest";
+    searchParams.get("name") || "Guest";
 
   const videoEnabled =
-    searchParams.get("video") ===
-    "true";
+    searchParams.get("video") === "true";
 
   const audioEnabled =
-    searchParams.get("audio") ===
-    "true";
+    searchParams.get("audio") === "true";
 
-  const [token, setToken] =
-    useState("");
+  const [token, setToken] = useState("");
+  const [serverUrl, setServerUrl] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const [serverUrl, setServerUrl] =
-    useState("");
+  const [user, setUser] = useState(null);
+  const [meeting, setMeeting] = useState(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] =
+    useState(0);
 
-  const [user, setUser] =
-    useState(null);
-
-  const [meeting, setMeeting] =
-    useState(null);
-
-  const [chatOpen, setChatOpen] =
+  const [reactionsOpen, setReactionsOpen] =
     useState(false);
 
-  const [
-    unreadChatCount,
-    setUnreadChatCount,
-  ] = useState(0);
+  const [peopleOpen, setPeopleOpen] =
+    useState(true);
 
-  const [
-    reactionsOpen,
-    setReactionsOpen,
-  ] = useState(false);
-
-  const [
-    peopleOpen,
-    setPeopleOpen,
-  ] = useState(true);
-
-  /* --------------------------------
-     Initialize meeting
-  -------------------------------- */
+  const [settingsOpen, setSettingsOpen] =
+    useState(false);
 
   useEffect(() => {
     initializeMeeting();
@@ -95,13 +71,10 @@ function Meeting() {
     try {
       const {
         data: { user },
-      } =
-        await supabase.auth.getUser();
+      } = await supabase.auth.getUser();
 
       if (!user) {
-        throw new Error(
-          "You must be logged in."
-        );
+        throw new Error("You must be logged in.");
       }
 
       setUser(user);
@@ -115,15 +88,7 @@ function Meeting() {
         .eq("code", code)
         .single();
 
-      if (
-        meetingError ||
-        !meetingData
-      ) {
-        console.error(
-          "Meeting lookup error:",
-          meetingError
-        );
-
+      if (meetingError || !meetingData) {
         throw new Error(
           "Could not find this meeting."
         );
@@ -146,7 +111,6 @@ function Meeting() {
 
       setToken(response.token);
       setServerUrl(response.url);
-
     } catch (error) {
       console.error(
         "Meeting initialization error:",
@@ -154,23 +118,14 @@ function Meeting() {
       );
 
       alert(error.message);
-
       navigate("/home");
-
     } finally {
       setLoading(false);
     }
   }
 
-  /* --------------------------------
-     Unread chat listener
-  -------------------------------- */
-
   useEffect(() => {
-    if (
-      !meeting?.id ||
-      !user?.id
-    ) {
+    if (!meeting?.id || !user?.id) {
       return;
     }
 
@@ -191,7 +146,6 @@ function Meeting() {
           const message =
             payload.new;
 
-          // Don't count our own message.
           if (
             message.sender_id ===
             user.id
@@ -199,8 +153,6 @@ function Meeting() {
             return;
           }
 
-          // Only count messages while
-          // the chat panel is closed.
           if (!chatOpen) {
             setUnreadChatCount(
               (current) =>
@@ -212,39 +164,31 @@ function Meeting() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(
-        channel
-      );
+      supabase.removeChannel(channel);
     };
-
   }, [
     meeting?.id,
     user?.id,
     chatOpen,
   ]);
 
-  /* --------------------------------
-     Controls
-  -------------------------------- */
-
   function handleDisconnected() {
     navigate("/home");
   }
 
   function toggleChat() {
-    setChatOpen(
-      (current) => {
-        const next = !current;
+    setChatOpen((current) => {
+      const next = !current;
 
-        if (next) {
-          setUnreadChatCount(0);
-        }
-
-        return next;
+      if (next) {
+        setUnreadChatCount(0);
       }
-    );
+
+      return next;
+    });
 
     setReactionsOpen(false);
+    setSettingsOpen(false);
   }
 
   function toggleReactions() {
@@ -253,6 +197,7 @@ function Meeting() {
     );
 
     setChatOpen(false);
+    setSettingsOpen(false);
   }
 
   function togglePeople() {
@@ -261,9 +206,14 @@ function Meeting() {
     );
   }
 
-  /* --------------------------------
-     Loading
-  -------------------------------- */
+  function toggleSettings() {
+    setSettingsOpen(
+      (current) => !current
+    );
+
+    setChatOpen(false);
+    setReactionsOpen(false);
+  }
 
   if (loading) {
     return (
@@ -295,18 +245,12 @@ function Meeting() {
   ) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950">
-
         <h1 className="text-xl font-semibold text-red-400">
           Failed to connect to the meeting.
         </h1>
-
       </div>
     );
   }
-
-  /* --------------------------------
-     Meeting
-  -------------------------------- */
 
   return (
     <LiveKitRoom
@@ -315,82 +259,110 @@ function Meeting() {
       connect={true}
       video={videoEnabled}
       audio={audioEnabled}
-      onDisconnected={
-        handleDisconnected
-      }
+      onDisconnected={handleDisconnected}
       className="h-screen w-screen bg-zinc-950"
     >
       <RoomAudioRenderer />
 
       <MeetingToasts />
 
-      <div className="flex h-screen overflow-hidden">
+      <div className="relative flex h-screen overflow-hidden">
 
-        {/* People Sidebar */}
-
+        {/* Desktop People Sidebar */}
         {peopleOpen && (
-          <ParticipantSidebar
-            roomCode={code}
-            hostId={meeting.host}
-            currentUser={user}
-          />
+          <div className="hidden lg:block">
+            <ParticipantSidebar
+              roomCode={code}
+              hostId={meeting.host}
+              currentUser={user}
+            />
+          </div>
         )}
 
-        {/* Main Meeting */}
+        {/* Mobile / Tablet People Overlay */}
+        {peopleOpen && (
+          <div className="absolute inset-y-0 left-0 z-[80] block lg:hidden">
+            <ParticipantSidebar
+              roomCode={code}
+              hostId={meeting.host}
+              currentUser={user}
+            />
+          </div>
+        )}
 
         <div className="flex min-w-0 flex-1 flex-col">
 
-          <MeetingHeader
-            code={code}
-          />
+          <MeetingHeader code={code} />
 
-          <div className="flex min-h-0 flex-1">
-
-            {/* Cameras / Screen Share */}
+          <div className="relative flex min-h-0 flex-1">
 
             <div className="min-w-0 flex-1">
               <CameraGrid />
             </div>
 
-            {/* Chat */}
+            {/* Desktop Panels */}
+            <div className="hidden lg:block">
+              {chatOpen && (
+                <ChatPanel
+                  meetingId={meeting.id}
+                  currentUser={user}
+                  onClose={() =>
+                    setChatOpen(false)
+                  }
+                />
+              )}
 
-            {chatOpen && (
-              <ChatPanel
-                meetingId={meeting.id}
-                currentUser={user}
-                onClose={() => {
-                  setChatOpen(false);
-                }}
-              />
+              {settingsOpen && (
+                <SettingsPanel
+                  onClose={() =>
+                    setSettingsOpen(false)
+                  }
+                />
+              )}
+            </div>
+
+            {/* Mobile / Tablet Overlays */}
+            {(chatOpen || settingsOpen) && (
+              <div className="absolute inset-0 z-[75] flex justify-end bg-black/40 backdrop-blur-sm lg:hidden">
+
+                {chatOpen && (
+                  <div className="h-full w-full max-w-sm">
+                    <ChatPanel
+                      meetingId={meeting.id}
+                      currentUser={user}
+                      onClose={() =>
+                        setChatOpen(false)
+                      }
+                    />
+                  </div>
+                )}
+
+                {settingsOpen && (
+                  <div className="h-full w-full max-w-sm">
+                    <SettingsPanel
+                      onClose={() =>
+                        setSettingsOpen(false)
+                      }
+                    />
+                  </div>
+                )}
+
+              </div>
             )}
 
           </div>
 
-          {/* Toolbar */}
-
           <BottomToolbar
             chatOpen={chatOpen}
-            reactionsOpen={
-              reactionsOpen
-            }
-            peopleOpen={
-              peopleOpen
-            }
-            unreadChatCount={
-              unreadChatCount
-            }
-            onToggleChat={
-              toggleChat
-            }
-            onToggleReactions={
-              toggleReactions
-            }
-            onTogglePeople={
-              togglePeople
-            }
+            reactionsOpen={reactionsOpen}
+            peopleOpen={peopleOpen}
+            settingsOpen={settingsOpen}
+            unreadChatCount={unreadChatCount}
+            onToggleChat={toggleChat}
+            onToggleReactions={toggleReactions}
+            onTogglePeople={togglePeople}
+            onToggleSettings={toggleSettings}
           />
-
-          {/* Reactions */}
 
           <ReactionBar
             open={reactionsOpen}

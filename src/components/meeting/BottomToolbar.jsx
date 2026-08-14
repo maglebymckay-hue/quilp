@@ -21,10 +21,12 @@ function BottomToolbar({
   chatOpen,
   reactionsOpen,
   peopleOpen,
+  settingsOpen,
   unreadChatCount = 0,
   onToggleChat,
   onToggleReactions,
   onTogglePeople,
+  onToggleSettings,
 }) {
   const navigate = useNavigate();
 
@@ -41,7 +43,10 @@ function BottomToolbar({
         !isMicrophoneEnabled
       );
     } catch (error) {
-      console.error("Microphone error:", error);
+      console.error(
+        "Microphone error:",
+        error
+      );
     }
   }
 
@@ -51,7 +56,10 @@ function BottomToolbar({
         !isCameraEnabled
       );
     } catch (error) {
-      console.error("Camera error:", error);
+      console.error(
+        "Camera error:",
+        error
+      );
     }
   }
 
@@ -61,35 +69,48 @@ function BottomToolbar({
         !isScreenShareEnabled
       );
     } catch (error) {
-      console.error("Screen share error:", error);
+      console.error(
+        "Screen share error:",
+        error
+      );
     }
   }
 
   async function leaveMeeting() {
     try {
       if (isScreenShareEnabled) {
-        await localParticipant.setScreenShareEnabled(false);
+        await localParticipant.setScreenShareEnabled(
+          false
+        );
       }
 
       if (isCameraEnabled) {
-        await localParticipant.setCameraEnabled(false);
+        await localParticipant.setCameraEnabled(
+          false
+        );
       }
 
       if (isMicrophoneEnabled) {
-        await localParticipant.setMicrophoneEnabled(false);
+        await localParticipant.setMicrophoneEnabled(
+          false
+        );
       }
     } catch (error) {
-      console.error("Leave cleanup error:", error);
+      console.error(
+        "Leave cleanup error:",
+        error
+      );
     }
 
     navigate("/home");
   }
 
   return (
-    <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2">
-      <div className="flex items-center gap-4 rounded-full border border-zinc-800 bg-zinc-900/90 px-6 py-4 shadow-2xl backdrop-blur-xl">
+    <div className="fixed bottom-3 left-1/2 z-50 w-[calc(100%-1rem)] max-w-max -translate-x-1/2 sm:bottom-5 lg:bottom-8">
 
-        <div className="flex flex-col items-center gap-1">
+      <div className="flex max-w-[calc(100vw-1rem)] items-center gap-2 overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900/95 px-3 py-3 shadow-2xl backdrop-blur-xl sm:gap-3 sm:rounded-full sm:px-5 lg:gap-4 lg:px-6 lg:py-4">
+
+        <div className="flex shrink-0 flex-col items-center gap-1">
           <IconButton onClick={toggleMicrophone}>
             {isMicrophoneEnabled ? (
               <Mic size={20} className="text-white" />
@@ -98,12 +119,12 @@ function BottomToolbar({
             )}
           </IconButton>
 
-          <span className="text-[11px] text-zinc-400">
+          <span className="hidden text-[11px] text-zinc-400 sm:block">
             Mic
           </span>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex shrink-0 flex-col items-center gap-1">
           <IconButton onClick={toggleCamera}>
             {isCameraEnabled ? (
               <Video size={20} className="text-white" />
@@ -112,12 +133,12 @@ function BottomToolbar({
             )}
           </IconButton>
 
-          <span className="text-[11px] text-zinc-400">
+          <span className="hidden text-[11px] text-zinc-400 sm:block">
             Camera
           </span>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex shrink-0 flex-col items-center gap-1">
           <IconButton onClick={toggleScreenShare}>
             {isScreenShareEnabled ? (
               <MonitorOff
@@ -132,14 +153,12 @@ function BottomToolbar({
             )}
           </IconButton>
 
-          <span className="text-[11px] text-zinc-400">
-            {isScreenShareEnabled
-              ? "Stop"
-              : "Share"}
+          <span className="hidden text-[11px] text-zinc-400 sm:block">
+            {isScreenShareEnabled ? "Stop" : "Share"}
           </span>
         </div>
 
-        <div className="relative flex flex-col items-center gap-1">
+        <div className="relative flex shrink-0 flex-col items-center gap-1">
 
           <IconButton onClick={onToggleChat}>
             <MessageCircle
@@ -161,7 +180,7 @@ function BottomToolbar({
           )}
 
           <span
-            className={`text-[11px] ${
+            className={`hidden text-[11px] sm:block ${
               chatOpen
                 ? "text-violet-400"
                 : "text-zinc-400"
@@ -172,7 +191,7 @@ function BottomToolbar({
 
         </div>
 
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex shrink-0 flex-col items-center gap-1">
           <IconButton onClick={onToggleReactions}>
             <Smile
               size={20}
@@ -185,7 +204,7 @@ function BottomToolbar({
           </IconButton>
 
           <span
-            className={`text-[11px] ${
+            className={`hidden text-[11px] sm:block ${
               reactionsOpen
                 ? "text-violet-400"
                 : "text-zinc-400"
@@ -195,7 +214,7 @@ function BottomToolbar({
           </span>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex shrink-0 flex-col items-center gap-1">
           <IconButton onClick={onTogglePeople}>
             <Users
               size={20}
@@ -208,7 +227,7 @@ function BottomToolbar({
           </IconButton>
 
           <span
-            className={`text-[11px] ${
+            className={`hidden text-[11px] sm:block ${
               peopleOpen
                 ? "text-violet-400"
                 : "text-zinc-400"
@@ -218,30 +237,43 @@ function BottomToolbar({
           </span>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
-          <IconButton>
+        <div className="flex shrink-0 flex-col items-center gap-1">
+          <IconButton onClick={onToggleSettings}>
             <Settings
               size={20}
-              className="text-white"
+              className={
+                settingsOpen
+                  ? "text-violet-400"
+                  : "text-white"
+              }
             />
           </IconButton>
 
-          <span className="text-[11px] text-zinc-400">
+          <span
+            className={`hidden text-[11px] sm:block ${
+              settingsOpen
+                ? "text-violet-400"
+                : "text-zinc-400"
+            }`}
+          >
             Settings
           </span>
         </div>
 
-        <div className="mx-2 h-12 w-px bg-zinc-700" />
+        <div className="mx-1 hidden h-10 w-px shrink-0 bg-zinc-700 sm:block lg:h-12" />
 
         <button
           onClick={leaveMeeting}
-          className="flex items-center gap-3 rounded-full bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500"
+          className="flex shrink-0 items-center gap-2 rounded-full bg-red-600 px-4 py-3 font-semibold text-white transition hover:bg-red-500"
         >
-          <PhoneOff size={20} />
-          Leave
+          <PhoneOff size={19} />
+          <span className="hidden sm:inline">
+            Leave
+          </span>
         </button>
 
       </div>
+
     </div>
   );
 }
