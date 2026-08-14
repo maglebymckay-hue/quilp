@@ -7,16 +7,27 @@ import {
   MonitorOff,
   Users,
   MessageCircle,
+  Smile,
   Settings,
   PhoneOff,
 } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
-import { useLocalParticipant } from "@livekit/components-react";
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  useLocalParticipant,
+} from "@livekit/components-react";
 
 import IconButton from "./ui/IconButton";
 
-function BottomToolbar() {
+function BottomToolbar({
+  chatOpen,
+  reactionsOpen,
+  onToggleChat,
+  onToggleReactions,
+}) {
   const navigate = useNavigate();
 
   const {
@@ -32,7 +43,10 @@ function BottomToolbar() {
         !isMicrophoneEnabled
       );
     } catch (error) {
-      console.error("Microphone error:", error);
+      console.error(
+        "Microphone error:",
+        error
+      );
     }
   }
 
@@ -42,7 +56,10 @@ function BottomToolbar() {
         !isCameraEnabled
       );
     } catch (error) {
-      console.error("Camera error:", error);
+      console.error(
+        "Camera error:",
+        error
+      );
     }
   }
 
@@ -52,20 +69,37 @@ function BottomToolbar() {
         !isScreenShareEnabled
       );
     } catch (error) {
-      console.error("Screen share error:", error);
+      console.error(
+        "Screen share error:",
+        error
+      );
     }
   }
 
   async function leaveMeeting() {
     try {
-      await localParticipant.setCameraEnabled(false);
-      await localParticipant.setMicrophoneEnabled(false);
-
       if (isScreenShareEnabled) {
-        await localParticipant.setScreenShareEnabled(false);
+        await localParticipant.setScreenShareEnabled(
+          false
+        );
+      }
+
+      if (isCameraEnabled) {
+        await localParticipant.setCameraEnabled(
+          false
+        );
+      }
+
+      if (isMicrophoneEnabled) {
+        await localParticipant.setMicrophoneEnabled(
+          false
+        );
       }
     } catch (error) {
-      console.error("Leave cleanup error:", error);
+      console.error(
+        "Leave cleanup error:",
+        error
+      );
     }
 
     navigate("/home");
@@ -73,15 +107,23 @@ function BottomToolbar() {
 
   return (
     <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2">
+
       <div className="flex items-center gap-4 rounded-full border border-zinc-800 bg-zinc-900/90 px-6 py-4 shadow-2xl backdrop-blur-xl">
 
-        {/* Microphone */}
         <div className="flex flex-col items-center gap-1">
-          <IconButton onClick={toggleMicrophone}>
+          <IconButton
+            onClick={toggleMicrophone}
+          >
             {isMicrophoneEnabled ? (
-              <Mic size={20} className="text-white" />
+              <Mic
+                size={20}
+                className="text-white"
+              />
             ) : (
-              <MicOff size={20} className="text-red-400" />
+              <MicOff
+                size={20}
+                className="text-red-400"
+              />
             )}
           </IconButton>
 
@@ -90,13 +132,20 @@ function BottomToolbar() {
           </span>
         </div>
 
-        {/* Camera */}
         <div className="flex flex-col items-center gap-1">
-          <IconButton onClick={toggleCamera}>
+          <IconButton
+            onClick={toggleCamera}
+          >
             {isCameraEnabled ? (
-              <Video size={20} className="text-white" />
+              <Video
+                size={20}
+                className="text-white"
+              />
             ) : (
-              <VideoOff size={20} className="text-red-400" />
+              <VideoOff
+                size={20}
+                className="text-red-400"
+              />
             )}
           </IconButton>
 
@@ -105,39 +154,86 @@ function BottomToolbar() {
           </span>
         </div>
 
-        {/* Screen Share */}
         <div className="flex flex-col items-center gap-1">
-          <IconButton onClick={toggleScreenShare}>
+          <IconButton
+            onClick={toggleScreenShare}
+          >
             {isScreenShareEnabled ? (
               <MonitorOff
                 size={20}
                 className="text-violet-400"
               />
             ) : (
-              <MonitorUp size={20} className="text-white" />
+              <MonitorUp
+                size={20}
+                className="text-white"
+              />
             )}
           </IconButton>
 
           <span className="text-[11px] text-zinc-400">
-            {isScreenShareEnabled ? "Stop" : "Share"}
+            {isScreenShareEnabled
+              ? "Stop"
+              : "Share"}
           </span>
         </div>
 
-        {/* Chat */}
         <div className="flex flex-col items-center gap-1">
-          <IconButton>
-            <MessageCircle size={20} />
+          <IconButton
+            onClick={onToggleChat}
+          >
+            <MessageCircle
+              size={20}
+              className={
+                chatOpen
+                  ? "text-violet-400"
+                  : "text-white"
+              }
+            />
           </IconButton>
 
-          <span className="text-[11px] text-zinc-400">
+          <span
+            className={`text-[11px] ${
+              chatOpen
+                ? "text-violet-400"
+                : "text-zinc-400"
+            }`}
+          >
             Chat
           </span>
         </div>
 
-        {/* Participants */}
+        <div className="flex flex-col items-center gap-1">
+          <IconButton
+            onClick={onToggleReactions}
+          >
+            <Smile
+              size={20}
+              className={
+                reactionsOpen
+                  ? "text-violet-400"
+                  : "text-white"
+              }
+            />
+          </IconButton>
+
+          <span
+            className={`text-[11px] ${
+              reactionsOpen
+                ? "text-violet-400"
+                : "text-zinc-400"
+            }`}
+          >
+            React
+          </span>
+        </div>
+
         <div className="flex flex-col items-center gap-1">
           <IconButton>
-            <Users size={20} />
+            <Users
+              size={20}
+              className="text-white"
+            />
           </IconButton>
 
           <span className="text-[11px] text-zinc-400">
@@ -145,10 +241,12 @@ function BottomToolbar() {
           </span>
         </div>
 
-        {/* Settings */}
         <div className="flex flex-col items-center gap-1">
           <IconButton>
-            <Settings size={20} />
+            <Settings
+              size={20}
+              className="text-white"
+            />
           </IconButton>
 
           <span className="text-[11px] text-zinc-400">
@@ -158,16 +256,16 @@ function BottomToolbar() {
 
         <div className="mx-2 h-12 w-px bg-zinc-700" />
 
-        {/* Leave */}
         <button
           onClick={leaveMeeting}
-          className="flex items-center gap-3 rounded-full bg-red-600 px-5 py-3 font-semibold text-white transition-all duration-200 hover:bg-red-500"
+          className="flex items-center gap-3 rounded-full bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500"
         >
           <PhoneOff size={20} />
           Leave
         </button>
 
       </div>
+
     </div>
   );
 }
