@@ -42,7 +42,7 @@ function VideoTile({ trackRef }) {
         duration-300
         ${
           isSpeaking
-            ? "border-violet-500 ring-2 ring-violet-500 shadow-[0_0_40px_rgba(139,92,246,0.35)]"
+            ? "scale-[1.01] border-violet-500 ring-2 ring-violet-500 shadow-[0_0_45px_rgba(139,92,246,0.45)]"
             : "border-zinc-800"
         }
       `}
@@ -56,10 +56,22 @@ function VideoTile({ trackRef }) {
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 via-violet-950 to-zinc-950">
 
-          <Avatar
-            name={displayName}
-            large
-          />
+          <div
+            className={`
+              transition-all
+              duration-300
+              ${
+                isSpeaking
+                  ? "scale-110 drop-shadow-[0_0_30px_rgba(139,92,246,0.55)]"
+                  : ""
+              }
+            `}
+          >
+            <Avatar
+              name={displayName}
+              large
+            />
+          </div>
 
           <p className="mt-5 text-lg font-semibold text-white">
             {displayName}
@@ -75,9 +87,10 @@ function VideoTile({ trackRef }) {
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between p-4">
+      <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between p-4">
 
         <div>
+
           <div className="flex items-center gap-2">
 
             <span className="font-semibold text-white">
@@ -90,17 +103,35 @@ function VideoTile({ trackRef }) {
 
           </div>
 
-          {isSpeaking && (
-            <span className="text-xs text-violet-300">
-              Speaking
-            </span>
-          )}
+          <div className="mt-1 h-5">
+
+            {isSpeaking && (
+              <div className="flex items-center gap-2 text-xs font-medium text-violet-300">
+
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
+                </span>
+
+                Speaking
+
+              </div>
+            )}
+
+          </div>
+
         </div>
 
         <div
           className={`
-            flex h-9 w-9 items-center justify-center
-            rounded-full backdrop-blur-md
+            flex
+            h-9
+            w-9
+            items-center
+            justify-center
+            rounded-full
+            backdrop-blur-md
+            transition
             ${
               micEnabled
                 ? "bg-black/40"
@@ -111,7 +142,11 @@ function VideoTile({ trackRef }) {
           {micEnabled ? (
             <Mic
               size={17}
-              className="text-white"
+              className={
+                isSpeaking
+                  ? "text-violet-300"
+                  : "text-white"
+              }
             />
           ) : (
             <MicOff

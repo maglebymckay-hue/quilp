@@ -43,25 +43,48 @@ function Meeting() {
   const audioEnabled =
     searchParams.get("audio") === "true";
 
-  const [token, setToken] = useState("");
-  const [serverUrl, setServerUrl] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [token, setToken] =
+    useState("");
 
-  const [user, setUser] = useState(null);
-  const [meeting, setMeeting] = useState(null);
+  const [serverUrl, setServerUrl] =
+    useState("");
 
-  const [chatOpen, setChatOpen] = useState(false);
-  const [unreadChatCount, setUnreadChatCount] =
-    useState(0);
-
-  const [reactionsOpen, setReactionsOpen] =
-    useState(false);
-
-  const [peopleOpen, setPeopleOpen] =
+  const [loading, setLoading] =
     useState(true);
 
-  const [settingsOpen, setSettingsOpen] =
+  const [user, setUser] =
+    useState(null);
+
+  const [meeting, setMeeting] =
+    useState(null);
+
+  const [chatOpen, setChatOpen] =
     useState(false);
+
+  const [
+    unreadChatCount,
+    setUnreadChatCount,
+  ] = useState(0);
+
+  const [
+    reactionsOpen,
+    setReactionsOpen,
+  ] = useState(false);
+
+  const [
+    peopleOpen,
+    setPeopleOpen,
+  ] = useState(true);
+
+  const [
+    settingsOpen,
+    setSettingsOpen,
+  ] = useState(false);
+
+  const [
+    raisedHands,
+    setRaisedHands,
+  ] = useState(() => new Set());
 
   useEffect(() => {
     initializeMeeting();
@@ -74,7 +97,9 @@ function Meeting() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        throw new Error("You must be logged in.");
+        throw new Error(
+          "You must be logged in."
+        );
       }
 
       setUser(user);
@@ -88,7 +113,10 @@ function Meeting() {
         .eq("code", code)
         .single();
 
-      if (meetingError || !meetingData) {
+      if (
+        meetingError ||
+        !meetingData
+      ) {
         throw new Error(
           "Could not find this meeting."
         );
@@ -111,6 +139,7 @@ function Meeting() {
 
       setToken(response.token);
       setServerUrl(response.url);
+
     } catch (error) {
       console.error(
         "Meeting initialization error:",
@@ -119,13 +148,17 @@ function Meeting() {
 
       alert(error.message);
       navigate("/home");
+
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (!meeting?.id || !user?.id) {
+    if (
+      !meeting?.id ||
+      !user?.id
+    ) {
       return;
     }
 
@@ -164,7 +197,9 @@ function Meeting() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(
+        channel
+      );
     };
   }, [
     meeting?.id,
@@ -176,16 +211,38 @@ function Meeting() {
     navigate("/home");
   }
 
-  function toggleChat() {
-    setChatOpen((current) => {
-      const next = !current;
+  function handleHandChange(
+    identity,
+    raised
+  ) {
+    setRaisedHands(
+      (current) => {
+        const next =
+          new Set(current);
 
-      if (next) {
-        setUnreadChatCount(0);
+        if (raised) {
+          next.add(identity);
+        } else {
+          next.delete(identity);
+        }
+
+        return next;
       }
+    );
+  }
 
-      return next;
-    });
+  function toggleChat() {
+    setChatOpen(
+      (current) => {
+        const next = !current;
+
+        if (next) {
+          setUnreadChatCount(0);
+        }
+
+        return next;
+      }
+    );
 
     setReactionsOpen(false);
     setSettingsOpen(false);
@@ -245,9 +302,11 @@ function Meeting() {
   ) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950">
+
         <h1 className="text-xl font-semibold text-red-400">
           Failed to connect to the meeting.
         </h1>
+
       </div>
     );
   }
@@ -259,7 +318,9 @@ function Meeting() {
       connect={true}
       video={videoEnabled}
       audio={audioEnabled}
-      onDisconnected={handleDisconnected}
+      onDisconnected={
+        handleDisconnected
+      }
       className="h-screen w-screen bg-zinc-950"
     >
       <RoomAudioRenderer />
@@ -275,6 +336,7 @@ function Meeting() {
               roomCode={code}
               hostId={meeting.host}
               currentUser={user}
+              raisedHands={raisedHands}
             />
           </div>
         )}
@@ -282,17 +344,22 @@ function Meeting() {
         {/* Mobile / Tablet People Overlay */}
         {peopleOpen && (
           <div className="absolute inset-y-0 left-0 z-[80] block lg:hidden">
+
             <ParticipantSidebar
               roomCode={code}
               hostId={meeting.host}
               currentUser={user}
+              raisedHands={raisedHands}
             />
+
           </div>
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
 
-          <MeetingHeader code={code} />
+          <MeetingHeader
+            code={code}
+          />
 
           <div className="relative flex min-h-0 flex-1">
 
@@ -302,6 +369,7 @@ function Meeting() {
 
             {/* Desktop Panels */}
             <div className="hidden lg:block">
+
               {chatOpen && (
                 <ChatPanel
                   meetingId={meeting.id}
@@ -319,14 +387,17 @@ function Meeting() {
                   }
                 />
               )}
+
             </div>
 
-            {/* Mobile / Tablet Overlays */}
-            {(chatOpen || settingsOpen) && (
+            {/* Mobile / Tablet Panels */}
+            {(chatOpen ||
+              settingsOpen) && (
               <div className="absolute inset-0 z-[75] flex justify-end bg-black/40 backdrop-blur-sm lg:hidden">
 
                 {chatOpen && (
                   <div className="h-full w-full max-w-sm">
+
                     <ChatPanel
                       meetingId={meeting.id}
                       currentUser={user}
@@ -334,16 +405,19 @@ function Meeting() {
                         setChatOpen(false)
                       }
                     />
+
                   </div>
                 )}
 
                 {settingsOpen && (
                   <div className="h-full w-full max-w-sm">
+
                     <SettingsPanel
                       onClose={() =>
                         setSettingsOpen(false)
                       }
                     />
+
                   </div>
                 )}
 
@@ -354,20 +428,39 @@ function Meeting() {
 
           <BottomToolbar
             chatOpen={chatOpen}
-            reactionsOpen={reactionsOpen}
-            peopleOpen={peopleOpen}
-            settingsOpen={settingsOpen}
-            unreadChatCount={unreadChatCount}
-            onToggleChat={toggleChat}
-            onToggleReactions={toggleReactions}
-            onTogglePeople={togglePeople}
-            onToggleSettings={toggleSettings}
+            reactionsOpen={
+              reactionsOpen
+            }
+            peopleOpen={
+              peopleOpen
+            }
+            settingsOpen={
+              settingsOpen
+            }
+            unreadChatCount={
+              unreadChatCount
+            }
+            onToggleChat={
+              toggleChat
+            }
+            onToggleReactions={
+              toggleReactions
+            }
+            onTogglePeople={
+              togglePeople
+            }
+            onToggleSettings={
+              toggleSettings
+            }
           />
 
           <ReactionBar
             open={reactionsOpen}
             onClose={() =>
               setReactionsOpen(false)
+            }
+            onHandChange={
+              handleHandChange
             }
           />
 

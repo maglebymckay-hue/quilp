@@ -1,10 +1,8 @@
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useState } from "react";
 
 import {
   useDataChannel,
+  useLocalParticipant,
 } from "@livekit/components-react";
 
 import {
@@ -24,9 +22,17 @@ const reactions = [
 function ReactionBar({
   open,
   onClose,
+  onHandChange,
 }) {
   const [floatingReactions, setFloatingReactions] =
     useState([]);
+
+  const [handRaised, setHandRaised] =
+    useState(false);
+
+  const {
+    localParticipant,
+  } = useLocalParticipant();
 
   const {
     send,
@@ -34,13 +40,24 @@ function ReactionBar({
     "quilp-reaction",
     (message) => {
       try {
-        const text = new TextDecoder().decode(
-          message.payload
-        );
+        const text =
+          new TextDecoder().decode(
+            message.payload
+          );
 
-        const data = JSON.parse(text);
+        const data =
+          JSON.parse(text);
 
-        showReaction(data);
+        if (data.type === "reaction") {
+          showReaction(data);
+        }
+
+        if (data.type === "hand") {
+          onHandChange?.(
+            data.identity,
+            data.raised
+          );
+        }
       } catch (error) {
         console.error(
           "Reaction receive error:",
@@ -54,20 +71,23 @@ function ReactionBar({
     const id =
       `${Date.now()}-${Math.random()}`;
 
-    setFloatingReactions((current) => [
-      ...current,
-      {
-        ...data,
-        id,
-      },
-    ]);
+    setFloatingReactions(
+      (current) => [
+        ...current,
+        {
+          ...data,
+          id,
+        },
+      ]
+    );
 
     setTimeout(() => {
-      setFloatingReactions((current) =>
-        current.filter(
-          (reaction) =>
-            reaction.id !== id
-        )
+      setFloatingReactions(
+        (current) =>
+          current.filter(
+            (reaction) =>
+              reaction.id !== id
+          )
       );
     }, 3000);
   }
@@ -76,6 +96,8 @@ function ReactionBar({
     const payload = {
       type: "reaction",
       emoji,
+      identity:
+        localParticipant.identity,
     };
 
     try {
@@ -97,10 +119,15 @@ function ReactionBar({
     }
   }
 
-  async function raiseHand() {
+  async function toggleHand() {
+    const nextRaised =
+      !handRaised;
+
     const payload = {
       type: "hand",
-      emoji: "✋",
+      identity:
+        localParticipant.identity,
+      raised: nextRaised,
     };
 
     try {
@@ -113,7 +140,13 @@ function ReactionBar({
         }
       );
 
-      showReaction(payload);
+      setHandRaised(nextRaised);
+
+      onHandChange?.(
+        localParticipant.identity,
+        nextRaised
+      );
+
     } catch (error) {
       console.error(
         "Raise hand error:",
@@ -141,7 +174,7 @@ function ReactionBar({
 
       </div>
 
-      {/* Reaction menu */}
+      {/* Reaction Menu */}
 
       {open && (
         <div className="fixed bottom-32 left-1/2 z-[60] -translate-x-1/2">
@@ -166,26 +199,48 @@ function ReactionBar({
 
             <div className="flex items-center gap-2">
 
-              {reactions.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() =>
-                    sendReaction(emoji)
-                  }
-                  className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-800 text-2xl transition hover:scale-110 hover:bg-zinc-700"
-                >
-                  {emoji}
-                </button>
-              ))}
+              {reactions.map(
+                (emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() =>
+                      sendReaction(
+                        emoji
+                      )
+                    }
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-800 text-2xl transition hover:scale-110 hover:bg-zinc-700"
+                  >
+                    {emoji}
+                  </button>
+                )
+              )}
 
               <div className="mx-2 h-9 w-px bg-zinc-700" />
 
               <button
-                onClick={raiseHand}
-                className="flex h-12 items-center gap-2 rounded-xl bg-violet-600 px-4 font-semibold text-white transition hover:bg-violet-500"
+                onClick={toggleHand}
+                className={`
+                  flex
+                  h-12
+                  items-center
+                  gap-2
+                  rounded-xl
+                  px-4
+                  font-semibold
+                  text-white
+                  transition
+                  ${
+                    handRaised
+                      ? "bg-yellow-500 hover:bg-yellow-400"
+                      : "bg-violet-600 hover:bg-violet-500"
+                  }
+                `}
               >
                 <Hand size={18} />
-                Raise
+
+                {handRaised
+                  ? "Lower"
+                  : "Raise"}
               </button>
 
             </div>
